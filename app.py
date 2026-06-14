@@ -1,10 +1,14 @@
-import streamlit as st
-from groq import Groq
 from dotenv import load_dotenv
 import os
 
 load_dotenv()
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+
+try:
+    api_key = st.secrets["GROQ_API_KEY"]
+except:
+    api_key = os.getenv("GROQ_API_KEY")
+
+client = Groq(api_key=api_key)
 
 SYSTEM_PROMPT = """
 You are a friendly Personal Finance Decision Agent for 18-22 year olds.
