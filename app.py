@@ -1,13 +1,8 @@
-from dotenv import load_dotenv
-import os
+import streamlit as st
+from groq import Groq
 
-load_dotenv()
-
-try:
-    api_key = st.secrets["GROQ_API_KEY"]
-except:
-    api_key = os.getenv("GROQ_API_KEY")
-
+# Get API key from Streamlit secrets
+api_key = st.secrets["GROQ_API_KEY"]
 client = Groq(api_key=api_key)
 
 SYSTEM_PROMPT = """
@@ -62,27 +57,4 @@ if not st.session_state.started:
     st.info("👈 Enter income & spending in sidebar, then click Start")
 
 for msg in st.session_state.messages:
-    with st.chat_message(msg["role"]):
-        st.markdown(msg["content"])
-
-if st.session_state.messages and st.session_state.messages[-1]["role"] == "user":
-    with st.chat_message("assistant"):
-        with st.spinner("Thinking..."):
-            response = client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
-                messages=[
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    *st.session_state.messages
-                ],
-                max_tokens=500,
-                temperature=0.7
-            )
-            reply = response.choices[0].message.content
-            st.markdown(reply)
-    st.session_state.messages.append({"role": "assistant", "content": reply})
-
-if st.session_state.started:
-    user_input = st.chat_input("Type your answer...")
-    if user_input:
-        st.session_state.messages.append({"role": "user", "content": user_input})
-        st.rerun()
+    with
