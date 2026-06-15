@@ -71,12 +71,10 @@ st.set_page_config(page_title="FinanceIQ", page_icon="💰", layout="wide")
 # ─── CUSTOM CSS ──────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-/* Global */
 [data-testid="stAppViewContainer"] { background: #0f1117; }
 [data-testid="stSidebar"] { background: #1a1d27; border-right: 1px solid #2d3148; }
 h1,h2,h3 { color: #e2e8f0 !important; }
 
-/* Slide cards */
 .slide-card {
     background: #1e2130;
     border: 1px solid #2d3148;
@@ -90,7 +88,6 @@ h1,h2,h3 { color: #e2e8f0 !important; }
     to   { opacity:1; transform:translateY(0); }
 }
 
-/* Metric chips */
 .metric-chip {
     background: #252840;
     border: 1px solid #3d4270;
@@ -102,7 +99,6 @@ h1,h2,h3 { color: #e2e8f0 !important; }
 .metric-chip .value { color:#e2e8f0; font-size:22px; font-weight:700; }
 .metric-chip .sub   { font-size:11px; margin-top:4px; }
 
-/* Tag pills */
 .tag-pill {
     display:inline-block;
     background: #1d3557;
@@ -114,7 +110,6 @@ h1,h2,h3 { color: #e2e8f0 !important; }
     margin: 4px;
 }
 
-/* Goal bar */
 .goal-bar-wrap {
     background: #252840;
     border-radius: 10px;
@@ -129,7 +124,6 @@ h1,h2,h3 { color: #e2e8f0 !important; }
     transition: width 0.6s ease;
 }
 
-/* Section title */
 .section-title {
     font-size: 11px;
     text-transform: uppercase;
@@ -139,12 +133,6 @@ h1,h2,h3 { color: #e2e8f0 !important; }
     margin-bottom: 16px;
 }
 
-/* Slide nav dots */
-.nav-dot { display:inline-block; width:10px; height:10px;
-           border-radius:50%; background:#2d3148; margin:0 4px; cursor:pointer; }
-.nav-dot.active { background:#667eea; }
-
-/* Action step */
 .action-step {
     display:flex; align-items:flex-start; gap:12px;
     background:#252840; border-radius:10px; padding:12px 16px; margin:8px 0;
@@ -156,7 +144,6 @@ h1,h2,h3 { color: #e2e8f0 !important; }
 }
 .step-text { color:#cbd5e0; font-size:14px; line-height:1.5; }
 
-/* Alloc row */
 .alloc-row {
     display:flex; justify-content:space-between; align-items:center;
     background:#252840; border-radius:10px; padding:12px 16px; margin:6px 0;
@@ -173,7 +160,7 @@ defaults = {
     "show_dashboard": False, "final_reply": "",
     "spending_cats": {}, "goal_data": {}, "tags": [],
     "active_slide": 0,
-    "goal_saved": 0,   # user-adjustable current saved amount
+    "goal_saved": 0,
 }
 for k, v in defaults.items():
     if k not in st.session_state:
@@ -247,33 +234,9 @@ def alloc_bar(alloc_dict, income):
     ))
     fig.update_layout(
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-        xaxis=dict(showgrid=False, zeroline=False, showticklabels=False,
-                   color="#8892b0"),
+        xaxis=dict(showgrid=False, zeroline=False, showticklabels=False, color="#8892b0"),
         yaxis=dict(showgrid=False, color="#cbd5e0", tickfont=dict(size=13)),
         margin=dict(t=10,b=10,l=10,r=80), height=max(160, 55*len(labels))
-    )
-    return fig
-
-def goal_projection_chart(monthly_needed, months, target):
-    x = list(range(0, months+1))
-    y = [min(monthly_needed * m, target) for m in x]
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(
-        x=x, y=y, mode="lines+markers",
-        line=dict(color="#667eea", width=2),
-        marker=dict(color="#764ba2", size=5),
-        fill="tozeroy", fillcolor="rgba(102,126,234,0.12)",
-        hovertemplate="Month %{x}: ₹%{y:,}<extra></extra>",
-        name="Projected savings"
-    ))
-    fig.add_hline(y=target, line_dash="dash", line_color="#43e97b",
-                  annotation_text=f"Target ₹{target:,}", annotation_font_color="#43e97b")
-    fig.update_layout(
-        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-        xaxis=dict(title="Months", color="#8892b0", gridcolor="#1e2130"),
-        yaxis=dict(title="₹ Saved", color="#8892b0", gridcolor="#1e2130"),
-        margin=dict(t=10,b=40,l=60,r=20), height=240,
-        showlegend=False
     )
     return fig
 
@@ -303,7 +266,6 @@ def show_dashboard():
 
     spend_pct = min(spending / income, 1.0) if income else 0
 
-    # Allocation split
     alloc = {}
     rem = savings
     if "emergency_fund" in tags and rem > 0:
@@ -315,21 +277,17 @@ def show_dashboard():
     if not alloc and savings > 0:
         alloc["💸 Savings"] = savings
 
-    # ── SLIDE NAV ──────────────────────────────────────────────────────────
     slide_names = ["📊 Overview", "🍩 Spending", "🗂️ Allocation", "🎯 Goal Tracker", "🚀 Action Plan"]
     n = len(slide_names)
 
-    # Prev / dot nav / Next in one row
     nav_cols = st.columns([1, 6, 1])
     with nav_cols[0]:
         if st.button("◀", use_container_width=True):
             st.session_state.active_slide = (st.session_state.active_slide - 1) % n
             st.rerun()
     with nav_cols[1]:
-        # Dot buttons via selectbox (clean & adjustable)
         chosen = st.radio("", slide_names, index=st.session_state.active_slide,
-                          horizontal=True, label_visibility="collapsed",
-                          key="slide_radio")
+                          horizontal=True, label_visibility="collapsed", key="slide_radio")
         st.session_state.active_slide = slide_names.index(chosen)
     with nav_cols[2]:
         if st.button("▶", use_container_width=True):
@@ -338,9 +296,7 @@ def show_dashboard():
 
     slide = st.session_state.active_slide
 
-    # ══════════════════════════════════════════════════════════════════════════
     # SLIDE 0 — OVERVIEW
-    # ══════════════════════════════════════════════════════════════════════════
     if slide == 0:
         st.markdown('<div class="slide-card">', unsafe_allow_html=True)
         st.markdown('<div class="section-title">Financial Snapshot</div>', unsafe_allow_html=True)
@@ -363,8 +319,6 @@ def show_dashboard():
              "#fa709a" if savings <= 0 else "#43e97b")
 
         st.markdown("<br>", unsafe_allow_html=True)
-
-        # Health bar
         st.markdown('<div class="section-title">Budget Health</div>', unsafe_allow_html=True)
         bar_color = "#43e97b" if spend_pct < 0.7 else ("#f6ad55" if spend_pct < 0.9 else "#fc8181")
         st.markdown(f"""
@@ -377,13 +331,10 @@ def show_dashboard():
         </div>""", unsafe_allow_html=True)
 
         st.markdown("<br>", unsafe_allow_html=True)
-
-        # Tags
         st.markdown('<div class="section-title">Your Focus Areas</div>', unsafe_allow_html=True)
         pills = " ".join(f'<span class="tag-pill">{TAG_LABELS.get(t, t)}</span>' for t in tags)
         st.markdown(pills, unsafe_allow_html=True)
 
-        # Plan summary
         if plan:
             st.markdown("<br>", unsafe_allow_html=True)
             st.markdown('<div class="section-title">AI Recommendation</div>', unsafe_allow_html=True)
@@ -392,21 +343,16 @@ def show_dashboard():
         if why:
             st.markdown(f'<div style="color:#8892b0;font-size:13px;margin-top:10px;font-style:italic">{why}</div>',
                         unsafe_allow_html=True)
-
         st.markdown('</div>', unsafe_allow_html=True)
 
-    # ══════════════════════════════════════════════════════════════════════════
-    # SLIDE 1 — SPENDING BREAKDOWN
-    # ══════════════════════════════════════════════════════════════════════════
+    # SLIDE 1 — SPENDING
     elif slide == 1:
         st.markdown('<div class="slide-card">', unsafe_allow_html=True)
         st.markdown('<div class="section-title">Spending Breakdown</div>', unsafe_allow_html=True)
-
         if cats:
             fig = spending_pie(cats)
             if fig:
                 st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
-
             st.markdown('<div class="section-title" style="margin-top:16px">Category Details</div>',
                         unsafe_allow_html=True)
             for cat, amt in sorted(cats.items(), key=lambda x: -x[1]):
@@ -416,8 +362,6 @@ def show_dashboard():
                   <span class="alloc-label">🔸 {cat.title()}</span>
                   <span class="alloc-amt">₹{amt:,} &nbsp;<span style="color:#8892b0;font-size:12px">({pct:.0f}%)</span></span>
                 </div>""", unsafe_allow_html=True)
-
-            # Adjustable: user can tweak category amounts live
             st.markdown("<br>", unsafe_allow_html=True)
             with st.expander("✏️ Adjust spending categories"):
                 new_cats = {}
@@ -429,23 +373,17 @@ def show_dashboard():
                     st.session_state.spending = sum(new_cats.values())
                     st.rerun()
         else:
-            st.info("No spending categories detected. Make sure to list them during the chat.")
-
+            st.info("No spending categories detected.")
         st.markdown('</div>', unsafe_allow_html=True)
 
-    # ══════════════════════════════════════════════════════════════════════════
     # SLIDE 2 — ALLOCATION
-    # ══════════════════════════════════════════════════════════════════════════
     elif slide == 2:
         st.markdown('<div class="slide-card">', unsafe_allow_html=True)
         st.markdown('<div class="section-title">Monthly Savings Allocation</div>', unsafe_allow_html=True)
-
         if savings > 0:
-            # Adjustable sliders for allocation
             st.markdown("**Drag to adjust your allocation split:**")
             adj = {}
             rem2 = savings
-
             if "emergency_fund" in tags:
                 ef_pct = st.slider("🛡️ Emergency Fund %", 0, 100, 50, key="ef_pct")
                 ef_amt = round(savings * ef_pct / 100)
@@ -458,40 +396,30 @@ def show_dashboard():
                 rem2 -= adj["🏥 Insurance"]
             if rem2 > 0:
                 adj["📈 SIP / Invest"] = rem2
-
-            # Bar chart
             fig2 = alloc_bar(adj, income)
             st.plotly_chart(fig2, use_container_width=True, config={"displayModeBar": False})
-
-            # Rows
             for label, amt in adj.items():
                 st.markdown(f"""
                 <div class="alloc-row">
                   <span class="alloc-label">{label}</span>
                   <span class="alloc-amt">₹{amt:,}/mo</span>
                 </div>""", unsafe_allow_html=True)
-
             st.markdown(f"""<div style="color:#8892b0;font-size:12px;margin-top:12px;text-align:right">
                 Total allocated: ₹{sum(adj.values()):,} / ₹{savings:,} surplus</div>""",
                 unsafe_allow_html=True)
         else:
             st.error("⚠️ No surplus to allocate. Reduce expenses first.")
-
         st.markdown('</div>', unsafe_allow_html=True)
 
-    # ══════════════════════════════════════════════════════════════════════════
     # SLIDE 3 — GOAL TRACKER
-    # ══════════════════════════════════════════════════════════════════════════
     elif slide == 3:
         st.markdown('<div class="slide-card">', unsafe_allow_html=True)
         st.markdown('<div class="section-title">Goal Tracker</div>', unsafe_allow_html=True)
-
         target  = goal.get("target_amount", 0)
         months  = goal.get("months", 12)
         monthly = goal.get("monthly_needed", savings)
         g_name  = goal.get("goal", "Financial Goal")
 
-        # Adjustable inputs
         col_a, col_b = st.columns(2)
         with col_a:
             target  = st.number_input("🎯 Goal Amount (₹)", min_value=0, value=int(target) or 50000, step=1000)
@@ -533,7 +461,6 @@ def show_dashboard():
           <div class="sub" style="color:#8892b0">at ₹{monthly:,}/mo</div>
         </div>""", unsafe_allow_html=True)
 
-        # Projection chart
         if monthly > 0 and target > 0:
             st.markdown("<br>", unsafe_allow_html=True)
             st.markdown('<div class="section-title">Savings Projection</div>', unsafe_allow_html=True)
@@ -558,16 +485,12 @@ def show_dashboard():
                 margin=dict(t=10,b=40,l=60,r=20), height=220, showlegend=False
             )
             st.plotly_chart(fig3, use_container_width=True, config={"displayModeBar": False})
-
         st.markdown('</div>', unsafe_allow_html=True)
 
-    # ══════════════════════════════════════════════════════════════════════════
     # SLIDE 4 — ACTION PLAN
-    # ══════════════════════════════════════════════════════════════════════════
     elif slide == 4:
         st.markdown('<div class="slide-card">', unsafe_allow_html=True)
         st.markdown('<div class="section-title">Your Action Plan</div>', unsafe_allow_html=True)
-
         if steps:
             for i, step in enumerate(steps, 1):
                 st.markdown(f"""
@@ -577,14 +500,11 @@ def show_dashboard():
                 </div>""", unsafe_allow_html=True)
         else:
             st.info("No action steps found.")
-
         if why:
             st.markdown("<br>", unsafe_allow_html=True)
             st.markdown('<div class="section-title">Why This Works</div>', unsafe_allow_html=True)
             st.markdown(f'<div style="color:#cbd5e0;font-size:14px;line-height:1.8">{why}</div>',
                         unsafe_allow_html=True)
-
-        # Quick finance tips based on tags
         st.markdown("<br>", unsafe_allow_html=True)
         st.markdown('<div class="section-title">Quick Tips</div>', unsafe_allow_html=True)
         tips = {
@@ -598,234 +518,44 @@ def show_dashboard():
             if tag in tips:
                 st.markdown(f'<div class="alloc-row"><span class="alloc-label">{tips[tag]}</span></div>',
                             unsafe_allow_html=True)
-
         st.markdown('</div>', unsafe_allow_html=True)
 
 
 # ─── SIDEBAR ─────────────────────────────────────────────────────────────────
-st.markdown("""
-<style>
-/* ── Sidebar shell ── */
-[data-testid="stSidebar"] {
-    background: linear-gradient(180deg, #0d1117 0%, #161b27 100%) !important;
-    border-right: 1px solid #21273a !important;
-}
-[data-testid="stSidebar"] > div:first-child { padding: 0 !important; }
-
-/* ── Sidebar brand header ── */
-.sb-brand {
-    background: linear-gradient(135deg,#1a1f35,#252b45);
-    border-bottom: 1px solid #2d3560;
-    padding: 22px 20px 16px;
-    margin-bottom: 4px;
-}
-.sb-brand .logo  { font-size:32px; margin-bottom:6px; }
-.sb-brand .title { color:#e2e8f0; font-size:20px; font-weight:700; letter-spacing:.5px; }
-.sb-brand .sub   { color:#667eea; font-size:11px; letter-spacing:1.5px;
-                   text-transform:uppercase; margin-top:3px; }
-
-/* ── Section label ── */
-.sb-label {
-    color:#8892b0; font-size:10px; letter-spacing:2px;
-    text-transform:uppercase; font-weight:600;
-    padding: 0 4px; margin-bottom:6px; margin-top:2px;
-}
-
-/* ── Live mini metric row ── */
-.sb-mini-grid {
-    display:grid; grid-template-columns:1fr 1fr;
-    gap:8px; margin: 4px 0 14px;
-}
-.sb-mini-card {
-    background:#1a1f35; border:1px solid #252b45;
-    border-radius:10px; padding:10px 12px; text-align:center;
-}
-.sb-mini-card .m-val { color:#e2e8f0; font-size:15px; font-weight:700; }
-.sb-mini-card .m-lbl { color:#8892b0; font-size:10px; margin-top:2px; }
-
-/* ── Health ring strip ── */
-.sb-health-wrap {
-    background:#1a1f35; border:1px solid #252b45;
-    border-radius:10px; padding:12px 14px; margin-bottom:14px;
-}
-.sb-health-bar {
-    height:8px; border-radius:6px; overflow:hidden;
-    background:#21273a; margin:8px 0 4px;
-}
-.sb-health-fill { height:8px; border-radius:6px; }
-.sb-health-row  { display:flex; justify-content:space-between;
-                  color:#8892b0; font-size:11px; }
-
-/* ── Nav slide buttons ── */
-.sb-nav-btn {
-    background:#1a1f35 !important; color:#cbd5e0 !important;
-    border:1px solid #252b45 !important; border-radius:10px !important;
-    text-align:left !important; font-size:13px !important;
-    transition: all .2s !important;
-}
-.sb-nav-btn:hover { background:#252b45 !important; border-color:#667eea !important; }
-.sb-nav-active {
-    background:linear-gradient(90deg,#1d2547,#252b54) !important;
-    border-color:#667eea !important; color:#90cdf4 !important;
-}
-
-/* ── Status badge ── */
-.sb-status {
-    display:flex; align-items:center; gap:8px;
-    background:#0d1f0d; border:1px solid #1a4a1a;
-    border-radius:8px; padding:8px 12px;
-    color:#48bb78; font-size:12px; margin-bottom:10px;
-}
-.sb-dot { width:7px; height:7px; border-radius:50%;
-          background:#48bb78; animation:pulse 1.5s infinite; }
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
-
-/* ── Start button glow ── */
-[data-testid="stSidebar"] .stButton > button[kind="primary"] {
-    background: linear-gradient(135deg,#667eea,#764ba2) !important;
-    border:none !important; border-radius:10px !important;
-    font-weight:600 !important; letter-spacing:.5px !important;
-    box-shadow: 0 4px 15px rgba(102,126,234,.35) !important;
-    transition: all .2s !important;
-}
-[data-testid="stSidebar"] .stButton > button[kind="primary"]:hover {
-    box-shadow: 0 6px 22px rgba(102,126,234,.55) !important;
-    transform: translateY(-1px) !important;
-}
-
-/* ── Reset button ── */
-[data-testid="stSidebar"] .stButton > button:not([kind="primary"]) {
-    background: #1a1f35 !important; color:#8892b0 !important;
-    border:1px solid #252b45 !important; border-radius:10px !important;
-}
-</style>
-""", unsafe_allow_html=True)
-
 with st.sidebar:
+    st.markdown("## 💰 FinanceIQ")
+    st.caption("Smart finance guide for 18-22 year olds")
+    st.divider()
+    income  = st.number_input("Monthly Income (₹)", min_value=0, step=500)
+    spending = st.number_input("Monthly Spending (₹)", min_value=0, step=500)
 
-    # ── Brand header
-    st.markdown("""
-    <div class="sb-brand">
-      <div class="logo">💰</div>
-      <div class="title">FinanceIQ</div>
-      <div class="sub">AI · Groq · LLaMA 3.3</div>
-    </div>""", unsafe_allow_html=True)
-
-    st.markdown("<div style='padding:16px 16px 0'>", unsafe_allow_html=True)
-
-    # ── Status badge
-    if st.session_state.show_dashboard:
-        st.markdown('<div class="sb-status"><div class="sb-dot"></div>Analysis complete</div>',
-                    unsafe_allow_html=True)
-    elif st.session_state.started:
-        st.markdown('<div class="sb-status" style="background:#1a1200;border-color:#4a3800;color:#f6ad55">'
-                    '<div class="sb-dot" style="background:#f6ad55"></div>Chat in progress</div>',
-                    unsafe_allow_html=True)
-
-    # ── Inputs (hide after dashboard is shown)
-    if not st.session_state.show_dashboard:
-        st.markdown('<div class="sb-label">Your Details</div>', unsafe_allow_html=True)
-        income   = st.number_input("Monthly Income (₹)", min_value=0, step=500,
-                                   help="Your total take-home salary or stipend")
-        spending = st.number_input("Monthly Spending (₹)", min_value=0, step=500,
-                                   help="Your total monthly expenses (rough estimate)")
-
-        # Live mini preview
+    if st.button("🚀 Start", use_container_width=True, type="primary"):
         if income > 0:
-            surplus = max(income - spending, 0)
-            sp_pct  = min(spending / income, 1.0)
-            bar_col = "#43e97b" if sp_pct < 0.7 else ("#f6ad55" if sp_pct < 0.9 else "#fc8181")
-            st.markdown(f"""
-            <div class="sb-mini-grid">
-              <div class="sb-mini-card">
-                <div class="m-val">₹{surplus:,}</div>
-                <div class="m-lbl">Surplus</div>
-              </div>
-              <div class="sb-mini-card">
-                <div class="m-val" style="color:{bar_col}">{sp_pct*100:.0f}%</div>
-                <div class="m-lbl">Spend ratio</div>
-              </div>
-            </div>
-            <div class="sb-health-wrap">
-              <div class="sb-label" style="margin:0 0 2px">Budget Health</div>
-              <div class="sb-health-bar">
-                <div class="sb-health-fill" style="width:{sp_pct*100:.1f}%;background:{bar_col}"></div>
-              </div>
-              <div class="sb-health-row">
-                <span>Expenses {sp_pct*100:.0f}%</span>
-                <span>Save {(1-sp_pct)*100:.0f}%</span>
-              </div>
-            </div>""", unsafe_allow_html=True)
+            for k, v in defaults.items():
+                st.session_state[k] = v
+            st.session_state.income   = income
+            st.session_state.spending = spending
+            msg = f"My monthly income is ₹{income} and I spend about ₹{spending}/month. Help me plan my finances."
+            st.session_state.messages.append({"role": "user", "content": msg})
+            st.session_state.started = True
+            st.rerun()
+        else:
+            st.warning("Enter your income first!")
 
-        st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("🚀 Start My Plan", use_container_width=True, type="primary"):
-            if income > 0:
-                for k, v in defaults.items():
-                    st.session_state[k] = v
-                st.session_state.income   = income
-                st.session_state.spending = spending
-                msg = f"My monthly income is ₹{income} and I spend about ₹{spending}/month. Help me plan my finances."
-                st.session_state.messages.append({"role": "user", "content": msg})
-                st.session_state.started = True
-                st.rerun()
-            else:
-                st.warning("Enter your income first!")
-
-    # ── Dashboard nav
-    else:
-        income   = st.session_state.income
-        spending = st.session_state.spending
-        surplus  = max(income - spending, 0)
-        sp_pct   = min(spending / income, 1.0) if income else 0
-        bar_col  = "#43e97b" if sp_pct < 0.7 else ("#f6ad55" if sp_pct < 0.9 else "#fc8181")
-
-        st.markdown(f"""
-        <div class="sb-mini-grid">
-          <div class="sb-mini-card">
-            <div class="m-val">₹{income:,}</div>
-            <div class="m-lbl">Income</div>
-          </div>
-          <div class="sb-mini-card">
-            <div class="m-val" style="color:#43e97b">₹{surplus:,}</div>
-            <div class="m-lbl">Surplus</div>
-          </div>
-        </div>
-        <div class="sb-health-wrap">
-          <div class="sb-label" style="margin:0 0 2px">Spend ratio</div>
-          <div class="sb-health-bar">
-            <div class="sb-health-fill" style="width:{sp_pct*100:.1f}%;background:{bar_col}"></div>
-          </div>
-          <div class="sb-health-row">
-            <span>Expenses {sp_pct*100:.0f}%</span>
-            <span>Save {(1-sp_pct)*100:.0f}%</span>
-          </div>
-        </div>""", unsafe_allow_html=True)
-
-        st.markdown('<div class="sb-label" style="margin-top:4px">Navigate</div>', unsafe_allow_html=True)
-        slide_names = ["📊 Overview","🍩 Spending","🗂️ Allocation","🎯 Goal Tracker","🚀 Action Plan"]
-        for i, name in enumerate(slide_names):
-            is_active = (st.session_state.active_slide == i)
-            extra = "sb-nav-active" if is_active else ""
-            # Use button but style via class
-            if st.button(name, key=f"sb_{i}", use_container_width=True):
-                st.session_state.active_slide = i
-                st.rerun()
-
-    st.markdown("<br>", unsafe_allow_html=True)
-    if st.button("🔄 Start Over", use_container_width=True):
+    if st.button("🔄 Reset", use_container_width=True):
         for k, v in defaults.items():
             st.session_state[k] = v
         st.rerun()
 
-    st.markdown("</div>", unsafe_allow_html=True)
+    if st.session_state.show_dashboard:
+        st.divider()
+        st.markdown("### 📌 Jump to Slide")
+        slide_names = ["📊 Overview","🍩 Spending","🗂️ Allocation","🎯 Goal Tracker","🚀 Action Plan"]
+        for i, name in enumerate(slide_names):
+            if st.button(name, key=f"sb_{i}", use_container_width=True):
+                st.session_state.active_slide = i
+                st.rerun()
 
-    # ── Footer
-    st.markdown("""
-    <div style="position:absolute;bottom:20px;left:0;right:0;text-align:center;
-                color:#3d4270;font-size:11px;padding:0 16px">
-      Built with Streamlit · Groq · LLaMA 3.3<br>
-      <span style="color:#667eea">FinanceIQ</span> © 2025
-    </div>""", unsafe_allow_html=True)
 
 # ─── MAIN ────────────────────────────────────────────────────────────────────
 st.markdown("## 💰 FinanceIQ &nbsp;<span style='font-size:14px;color:#667eea'>Personal Finance Agent</span>",
@@ -847,7 +577,6 @@ if not st.session_state.started:
     </div>""", unsafe_allow_html=True)
 
 elif not st.session_state.show_dashboard:
-    # Chat view
     for msg in st.session_state.messages:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
