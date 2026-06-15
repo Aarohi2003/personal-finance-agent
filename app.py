@@ -603,39 +603,229 @@ def show_dashboard():
 
 
 # ─── SIDEBAR ─────────────────────────────────────────────────────────────────
+st.markdown("""
+<style>
+/* ── Sidebar shell ── */
+[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, #0d1117 0%, #161b27 100%) !important;
+    border-right: 1px solid #21273a !important;
+}
+[data-testid="stSidebar"] > div:first-child { padding: 0 !important; }
+
+/* ── Sidebar brand header ── */
+.sb-brand {
+    background: linear-gradient(135deg,#1a1f35,#252b45);
+    border-bottom: 1px solid #2d3560;
+    padding: 22px 20px 16px;
+    margin-bottom: 4px;
+}
+.sb-brand .logo  { font-size:32px; margin-bottom:6px; }
+.sb-brand .title { color:#e2e8f0; font-size:20px; font-weight:700; letter-spacing:.5px; }
+.sb-brand .sub   { color:#667eea; font-size:11px; letter-spacing:1.5px;
+                   text-transform:uppercase; margin-top:3px; }
+
+/* ── Section label ── */
+.sb-label {
+    color:#8892b0; font-size:10px; letter-spacing:2px;
+    text-transform:uppercase; font-weight:600;
+    padding: 0 4px; margin-bottom:6px; margin-top:2px;
+}
+
+/* ── Live mini metric row ── */
+.sb-mini-grid {
+    display:grid; grid-template-columns:1fr 1fr;
+    gap:8px; margin: 4px 0 14px;
+}
+.sb-mini-card {
+    background:#1a1f35; border:1px solid #252b45;
+    border-radius:10px; padding:10px 12px; text-align:center;
+}
+.sb-mini-card .m-val { color:#e2e8f0; font-size:15px; font-weight:700; }
+.sb-mini-card .m-lbl { color:#8892b0; font-size:10px; margin-top:2px; }
+
+/* ── Health ring strip ── */
+.sb-health-wrap {
+    background:#1a1f35; border:1px solid #252b45;
+    border-radius:10px; padding:12px 14px; margin-bottom:14px;
+}
+.sb-health-bar {
+    height:8px; border-radius:6px; overflow:hidden;
+    background:#21273a; margin:8px 0 4px;
+}
+.sb-health-fill { height:8px; border-radius:6px; }
+.sb-health-row  { display:flex; justify-content:space-between;
+                  color:#8892b0; font-size:11px; }
+
+/* ── Nav slide buttons ── */
+.sb-nav-btn {
+    background:#1a1f35 !important; color:#cbd5e0 !important;
+    border:1px solid #252b45 !important; border-radius:10px !important;
+    text-align:left !important; font-size:13px !important;
+    transition: all .2s !important;
+}
+.sb-nav-btn:hover { background:#252b45 !important; border-color:#667eea !important; }
+.sb-nav-active {
+    background:linear-gradient(90deg,#1d2547,#252b54) !important;
+    border-color:#667eea !important; color:#90cdf4 !important;
+}
+
+/* ── Status badge ── */
+.sb-status {
+    display:flex; align-items:center; gap:8px;
+    background:#0d1f0d; border:1px solid #1a4a1a;
+    border-radius:8px; padding:8px 12px;
+    color:#48bb78; font-size:12px; margin-bottom:10px;
+}
+.sb-dot { width:7px; height:7px; border-radius:50%;
+          background:#48bb78; animation:pulse 1.5s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+/* ── Start button glow ── */
+[data-testid="stSidebar"] .stButton > button[kind="primary"] {
+    background: linear-gradient(135deg,#667eea,#764ba2) !important;
+    border:none !important; border-radius:10px !important;
+    font-weight:600 !important; letter-spacing:.5px !important;
+    box-shadow: 0 4px 15px rgba(102,126,234,.35) !important;
+    transition: all .2s !important;
+}
+[data-testid="stSidebar"] .stButton > button[kind="primary"]:hover {
+    box-shadow: 0 6px 22px rgba(102,126,234,.55) !important;
+    transform: translateY(-1px) !important;
+}
+
+/* ── Reset button ── */
+[data-testid="stSidebar"] .stButton > button:not([kind="primary"]) {
+    background: #1a1f35 !important; color:#8892b0 !important;
+    border:1px solid #252b45 !important; border-radius:10px !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
 with st.sidebar:
-    st.markdown("## 💰 FinanceIQ")
-    st.caption("Smart finance guide for 18-22 year olds")
-    st.divider()
-    income  = st.number_input("Monthly Income (₹)", min_value=0, step=500)
-    spending = st.number_input("Monthly Spending (₹)", min_value=0, step=500)
 
-    if st.button("🚀 Start", use_container_width=True, type="primary"):
+    # ── Brand header
+    st.markdown("""
+    <div class="sb-brand">
+      <div class="logo">💰</div>
+      <div class="title">FinanceIQ</div>
+      <div class="sub">AI · Groq · LLaMA 3.3</div>
+    </div>""", unsafe_allow_html=True)
+
+    st.markdown("<div style='padding:16px 16px 0'>", unsafe_allow_html=True)
+
+    # ── Status badge
+    if st.session_state.show_dashboard:
+        st.markdown('<div class="sb-status"><div class="sb-dot"></div>Analysis complete</div>',
+                    unsafe_allow_html=True)
+    elif st.session_state.started:
+        st.markdown('<div class="sb-status" style="background:#1a1200;border-color:#4a3800;color:#f6ad55">'
+                    '<div class="sb-dot" style="background:#f6ad55"></div>Chat in progress</div>',
+                    unsafe_allow_html=True)
+
+    # ── Inputs (hide after dashboard is shown)
+    if not st.session_state.show_dashboard:
+        st.markdown('<div class="sb-label">Your Details</div>', unsafe_allow_html=True)
+        income   = st.number_input("Monthly Income (₹)", min_value=0, step=500,
+                                   help="Your total take-home salary or stipend")
+        spending = st.number_input("Monthly Spending (₹)", min_value=0, step=500,
+                                   help="Your total monthly expenses (rough estimate)")
+
+        # Live mini preview
         if income > 0:
-            for k, v in defaults.items():
-                st.session_state[k] = v
-            st.session_state.income   = income
-            st.session_state.spending = spending
-            msg = f"My monthly income is ₹{income} and I spend about ₹{spending}/month. Help me plan my finances."
-            st.session_state.messages.append({"role": "user", "content": msg})
-            st.session_state.started = True
-            st.rerun()
-        else:
-            st.warning("Enter your income first!")
+            surplus = max(income - spending, 0)
+            sp_pct  = min(spending / income, 1.0)
+            bar_col = "#43e97b" if sp_pct < 0.7 else ("#f6ad55" if sp_pct < 0.9 else "#fc8181")
+            st.markdown(f"""
+            <div class="sb-mini-grid">
+              <div class="sb-mini-card">
+                <div class="m-val">₹{surplus:,}</div>
+                <div class="m-lbl">Surplus</div>
+              </div>
+              <div class="sb-mini-card">
+                <div class="m-val" style="color:{bar_col}">{sp_pct*100:.0f}%</div>
+                <div class="m-lbl">Spend ratio</div>
+              </div>
+            </div>
+            <div class="sb-health-wrap">
+              <div class="sb-label" style="margin:0 0 2px">Budget Health</div>
+              <div class="sb-health-bar">
+                <div class="sb-health-fill" style="width:{sp_pct*100:.1f}%;background:{bar_col}"></div>
+              </div>
+              <div class="sb-health-row">
+                <span>Expenses {sp_pct*100:.0f}%</span>
+                <span>Save {(1-sp_pct)*100:.0f}%</span>
+              </div>
+            </div>""", unsafe_allow_html=True)
 
-    if st.button("🔄 Reset", use_container_width=True):
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button("🚀 Start My Plan", use_container_width=True, type="primary"):
+            if income > 0:
+                for k, v in defaults.items():
+                    st.session_state[k] = v
+                st.session_state.income   = income
+                st.session_state.spending = spending
+                msg = f"My monthly income is ₹{income} and I spend about ₹{spending}/month. Help me plan my finances."
+                st.session_state.messages.append({"role": "user", "content": msg})
+                st.session_state.started = True
+                st.rerun()
+            else:
+                st.warning("Enter your income first!")
+
+    # ── Dashboard nav
+    else:
+        income   = st.session_state.income
+        spending = st.session_state.spending
+        surplus  = max(income - spending, 0)
+        sp_pct   = min(spending / income, 1.0) if income else 0
+        bar_col  = "#43e97b" if sp_pct < 0.7 else ("#f6ad55" if sp_pct < 0.9 else "#fc8181")
+
+        st.markdown(f"""
+        <div class="sb-mini-grid">
+          <div class="sb-mini-card">
+            <div class="m-val">₹{income:,}</div>
+            <div class="m-lbl">Income</div>
+          </div>
+          <div class="sb-mini-card">
+            <div class="m-val" style="color:#43e97b">₹{surplus:,}</div>
+            <div class="m-lbl">Surplus</div>
+          </div>
+        </div>
+        <div class="sb-health-wrap">
+          <div class="sb-label" style="margin:0 0 2px">Spend ratio</div>
+          <div class="sb-health-bar">
+            <div class="sb-health-fill" style="width:{sp_pct*100:.1f}%;background:{bar_col}"></div>
+          </div>
+          <div class="sb-health-row">
+            <span>Expenses {sp_pct*100:.0f}%</span>
+            <span>Save {(1-sp_pct)*100:.0f}%</span>
+          </div>
+        </div>""", unsafe_allow_html=True)
+
+        st.markdown('<div class="sb-label" style="margin-top:4px">Navigate</div>', unsafe_allow_html=True)
+        slide_names = ["📊 Overview","🍩 Spending","🗂️ Allocation","🎯 Goal Tracker","🚀 Action Plan"]
+        for i, name in enumerate(slide_names):
+            is_active = (st.session_state.active_slide == i)
+            extra = "sb-nav-active" if is_active else ""
+            # Use button but style via class
+            if st.button(name, key=f"sb_{i}", use_container_width=True):
+                st.session_state.active_slide = i
+                st.rerun()
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    if st.button("🔄 Start Over", use_container_width=True):
         for k, v in defaults.items():
             st.session_state[k] = v
         st.rerun()
 
-    if st.session_state.show_dashboard:
-        st.divider()
-        st.markdown("### 📌 Jump to Slide")
-        slide_names = ["📊 Overview","🍩 Spending","🗂️ Allocation","🎯 Goal Tracker","🚀 Action Plan"]
-        for i, name in enumerate(slide_names):
-            if st.button(name, key=f"sb_{i}", use_container_width=True):
-                st.session_state.active_slide = i
-                st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    # ── Footer
+    st.markdown("""
+    <div style="position:absolute;bottom:20px;left:0;right:0;text-align:center;
+                color:#3d4270;font-size:11px;padding:0 16px">
+      Built with Streamlit · Groq · LLaMA 3.3<br>
+      <span style="color:#667eea">FinanceIQ</span> © 2025
+    </div>""", unsafe_allow_html=True)
 
 # ─── MAIN ────────────────────────────────────────────────────────────────────
 st.markdown("## 💰 FinanceIQ &nbsp;<span style='font-size:14px;color:#667eea'>Personal Finance Agent</span>",
